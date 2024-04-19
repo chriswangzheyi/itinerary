@@ -4,9 +4,11 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Par
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_LEFT
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase import pdfmetrics
 
 
-def get_places_and_activities(client,prompt_text):
+def get_places_and_activities(client, prompt_text):
     try:
         response = client.completions.create(
             model="gpt-3.5-turbo-instruct",
@@ -14,7 +16,7 @@ def get_places_and_activities(client,prompt_text):
             max_tokens=1000,
             temperature=0.6
         )
-        print("response: ",response)
+        print("response: ", response)
         return response.choices[0].text.strip() if response.choices else None
     except Exception as e:
         print(f"Error during API call: {e}")
@@ -27,49 +29,58 @@ def custom_prompt(trip):
         "day1": {{
             "1": {{
                 "time": "9:00", 
-                "place": "Buckingham Palace", 
-                "activity": "visit the official residence of the British monarch. Watch the Changing of the Guard ceremony at 11:00am."
+                "place": "白金汉宫", 
+                "activity": "参观英国君主的官邸。上午11点观看卫兵换岗仪式。"
             }},
             "2": {{
                 "time": "12:00", 
-                "place": "Westminster Abbey", 
-                "activity": "visit stunning Gothic church where many royal weddings and coronations have taken place."
+                "place": "威斯敏斯特教堂", 
+                "activity": "参观令人惊叹的哥特式教堂，许多皇室婚礼和加冕仪式都在这里举行。"
             }},
             "3": {{
                 "time": "14:00", 
-                "place": "nearby pub", 
-                "activity": "Enjoy a traditional English lunch"
+                "place": "附近的酒吧", 
+                "activity": "享受一顿传统的英式午餐"
+            }}，
+            "4": {{
+                "time": "19:00", 
+                "place": "伦敦安大略希尔顿逸林酒店", 
+                "activity": "入住酒店"
             }}
         }},
         "day2": {{
             "1": {{
                 "time": "9:00", 
-                "place": "British Museum", 
-                "activity": "visit one of the world's largest and most comprehensive museums, with over 8 million artifacts."
+                "place": "大英博物馆", 
+                "activity": "参观世界上最大和最全面的博物馆之一，拥有超过800万件文物"
             }},
             "2": {{
                 "time": "12:00", 
-                "place": "Covent Garden", 
-                "activity": "enjoy lunch and visit the bustling market and shopping district, for lunch and some souvenir shopping."
+                "place": "考文特花园", 
+                "activity": "享用午餐，参观熙熙攘攘的市场和购物区，享用午餐和购买纪念品。"
             }},
             "3": {{
                 "time": "14:00", 
-                "place": "London Eye", 
-                "activity": "visit a giant Ferris wheel offering stunning views of the city."
+                "place": "伦敦眼", 
+                "activity": "参观巨大的摩天轮，欣赏城市的美景。"
+            }}，
+            "4": {{
+                "time": "19:00", 
+                "place": "伦敦安大略希尔顿逸林酒店", 
+                "activity": "入住酒店"
             }}
         }}
     }}'''
 
     prompt_text = f'''
     Create a comprehensive  {trip.get_num_days()}-day itinerary for visiting {trip.get_city()}. we have {trip.get_num_travelers()} 
-    people. Include popular tourist attractions, food experiences, and cultural activities.
+    people. Include popular tourist attractions, food experiences, and cultural activities, 3 items per day max. use the same language as {trip.get_city()}. 
 
 
     Format:
     {json_description}
     '''
     return prompt_text
-
 
 
 def parse_activities(response_text):
@@ -112,8 +123,11 @@ def parse_activities(response_text):
 
 
 def create_trip_plan(trip, output_filename, client):
+    # 在生成 PDF 前加载中文字体
+    pdfmetrics.registerFont(TTFont('SimSun', 'font/simsun.ttf'))  # 这里假设宋体字体文件名为simsun.ttf
+
     prompt_text = custom_prompt(trip)
-    activities_text = get_places_and_activities(client,prompt_text)
+    activities_text = get_places_and_activities(client, prompt_text)
     days_activities = parse_activities(activities_text)  # 解析活动数据
 
     doc = SimpleDocTemplate(output_filename, pagesize=letter)
@@ -121,6 +135,7 @@ def create_trip_plan(trip, output_filename, client):
     custom_style = ParagraphStyle(
         name='Custom',
         parent=styles['BodyText'],
+        fontName='SimSun',  # 使用宋体字体
         fontSize=10,
         leading=12,
         alignment=TA_LEFT,  # 文本对齐方式
@@ -129,7 +144,8 @@ def create_trip_plan(trip, output_filename, client):
     )
 
     title_style = styles['Title']
-    title = Paragraph(f'{trip.get_city()} Trip Itinerary', title_style)
+    title_style.fontName = 'SimSun'  # 使用宋体字体
+    title = Paragraph(f'{trip.get_city()} 旅行计划', title_style)
 
     elements = [title, Spacer(1, 0.2 * inch)]
 
@@ -167,5 +183,3 @@ def create_trip_plan(trip, output_filename, client):
 
     doc.build(elements)
     print(f"PDF created successfully: {output_filename}")
-
-

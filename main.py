@@ -19,6 +19,6 @@ if __name__ == "__main__":
     output_pdf_path = 'Chongqing_Itinerary.pdf'
 
     client = init_env()
-    trip = Trip("Chongqing", 2, 3)
+    trip = Trip("重庆", 2, 3)
 
     create_trip_plan(trip, output_pdf_path, client)
