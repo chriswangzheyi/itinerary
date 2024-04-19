@@ -9,7 +9,7 @@ def init_env():
     # 设置环境变量或直接在LangChain配置中设置API密钥
     os.environ['HTTP_PROXY'] = 'http://127.0.0.1:10887'
     os.environ['HTTPS_PROXY'] = 'http://127.0.0.1:10887'
-    os.environ['OPENAI_API_KEY'] = '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'
+    os.environ['OPENAI_API_KEY'] = 'sk-2xzvoZZDUiAxclgZ8riJT3BlbkFJF0hXkRgYTyIuH0dNdXk'
 
     client = OpenAI()
     return client
